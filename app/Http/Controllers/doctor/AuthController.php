@@ -1,6 +1,7 @@
 <?php
-namespace App\Http\Controllers\admin;
+namespace App\Http\Controllers\doctor;
 use App\Http\Controllers\Controller;
+use App\Doctor;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Auth;
@@ -10,6 +11,38 @@ use Illuminate\Http\Request;
 class AuthController extends Controller
 {
     use GeneralTraits;
+    public function register(Request $request) {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|between:2,100',
+            'email' => 'required|string|email|max:100|unique:doctors',
+            'password' => 'required',
+        ]);
+
+        if($validator->fails()){
+            return response()->json($validator->errors(), 400);
+        }
+
+        $doctor = Doctor::create(array_merge(
+            $validator->validated()
+        ));
+
+        return response()->json([
+            'message' => 'User successfully registered',
+            'user' => $doctor
+        ], 201);
+    }
+
+
+
+
+    protected function createNewToken($token){
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' =>  60,
+            'user' => auth()->user()
+        ]);
+    }
 
     public function login(Request $request)
     {
@@ -37,10 +70,10 @@ class AuthController extends Controller
             if (!$token)
                 return $this->returnError('E001', 'بيانات الدخول غير صحيحة');
 
-            $admin = Auth::guard('admin-api')->user();
-            $admin->api_token = $token;
+            $doctor = Auth::guard('doctor-api')->user();
+            $doctor->api_token = $token;
             //return token
-            return $this->returnData('admin', $admin);
+            return $this->returnData('doctor', $doctor);
 
         } catch (\Exception $ex) {
             return $this->returnError($ex->getCode(), $ex->getMessage());

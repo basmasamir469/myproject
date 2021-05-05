@@ -44,6 +44,18 @@ class AuthController extends Controller
             'user' => auth()->user()
         ]);
     }
+    public function index(Request $request){
+        $token = $request -> header('auth-token');
+        if($token) {
+            $user_id = $request->user()->id;
+            $data = User::find($user_id);
+            return $this->returnData('200', $data, 'user profile');
+        }
+        else{
+            $this -> returnError('','some thing went wrongs');
+        }
+
+    }
 
     public function login(Request $request)
     {
@@ -51,7 +63,7 @@ class AuthController extends Controller
         try {
             $rules = [
                 "email" => "required",
-                "password" => "required"
+                "password" => "required",
 
             ];
 
@@ -78,6 +90,39 @@ class AuthController extends Controller
 
         } catch (\Exception $ex) {
             return $this->returnError($ex->getCode(), $ex->getMessage());
+        }
+
+
+    }
+    public function edit(Request $request){
+        $token = $request -> header('auth-token');
+        if($token) {
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|between:2,100',
+                'email' => 'required|string|email|max:100|unique:users,'. $request->user()->id,
+                'password' => 'required',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json($validator->errors(), 400);
+            }
+            $user_id = $request->user()->id;
+            $user = User::find($user_id);
+
+            $user->name = $request->name;
+            $user->email = $request->email;
+            $user->password = $request->password;
+
+
+            $user->update();
+
+
+            return response()->json([
+                'message' => 'User successfully updated',
+                'user' => $user
+            ], 201);
+        } else{
+            $this -> returnError('','some thing went wrongs');
         }
 
 
